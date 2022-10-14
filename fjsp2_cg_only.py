@@ -2,7 +2,7 @@ from pyscipopt import Model, Pricer, SCIP_RESULT, SCIP_PARAMSETTING, quicksum, E
 from fjspim_problem import FJSPIMProblem
 from fjspim_model import FJSPIMModel
 from bnp_constant import PRICER_MAX_TIME, INTEGER_PRECISION
-
+import time
 
 class FJSPIMCG:
     
@@ -14,8 +14,7 @@ class FJSPIMCG:
     
     def find_init_sol(self,p:FJSPIMProblem):
         m = FJSPIMModel(p)
-        
-        m.m.setObjective(1,sense = 'minimize')
+        m.setEarlyTermination()
         m.m.optimize()
         sol = m.m.getBestSol()
         C_u = {}
@@ -63,6 +62,7 @@ class FJSPIMCG:
             
         
     def __init__(self,p:FJSPIMProblem):
+
         m = Model("fjspim_master")
         m.setPresolve(SCIP_PARAMSETTING.OFF)
         m.setHeuristics(SCIP_PARAMSETTING.OFF)
@@ -70,7 +70,10 @@ class FJSPIMCG:
         self.m = m
         self.p = p
         # initial solution
+        heu_time_0 = time.time()
         init_C = self.find_init_sol(p)
+        heu_time_1 = time.time()
+        self.heu_time = heu_time_1 - heu_time_0
         
         # create the variables
         # C_max
@@ -195,7 +198,9 @@ class FJSPIMCG:
         
         
 class SchedulePricer(Pricer):
-
+    def __init__(self):
+        self.cols = 0
+        
     # The initialisation function for the variable pricer to retrieve the transformed constraints of the problem
     def pricerinit(self):
         #print(self.data[10])
@@ -313,7 +318,7 @@ class SchedulePricer(Pricer):
                 redcost = 1
             """
             #print("redcost:{}".format(redcost))
-            if redcost < -1e-08:
+            if redcost < -INTEGER_PRECISION:
 
                 #for u in self.data["p"].D[i]:
                     #print("C_{}:{}".format(u,round(m.getVal(C_u[u]))))
@@ -348,7 +353,9 @@ class SchedulePricer(Pricer):
                 
                 self.data["y"][i].append(newVar)
                 
-                #print("add column")
+                
+                self.cols = self.cols+1
+                print("add column,added cols:{}".format(self.cols))
                 
                 # add pattern back to master problem data
                 pat_Cui = {}
@@ -386,7 +393,8 @@ class EarlyTerminationEvent(Eventhdlr):
             #print(event.getType())
             if self.model.getStage() == 9:
                 objVal = self.model.getSolObjVal(None,original=True)
-                if objVal < -1:
+                #print("sub_obj:{}".format(objVal))
+                if objVal < -INTEGER_PRECISION:
                     #print("interruptSolve")
                     self.model.interruptSolve()
 
@@ -398,7 +406,7 @@ if __name__ == '__main__':
     #2.70625000000000e+01
     #32
     #21
-    filename = "100_7_4_150.fim"
+    filename = "40_3_2_40_7.fim"
     p = FJSPIMProblem(filename)
     m = FJSPIMCG(p)
     m.m.optimize()

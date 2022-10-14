@@ -1,5 +1,5 @@
 from fjspim_problem import FJSPIMProblem
-from pyscipopt import Model,quicksum, SCIP_PARAMSETTING
+from pyscipopt import Model,quicksum, SCIP_PARAMSETTING, Eventhdlr, SCIP_EVENTTYPE
 
 
 class FJSPIMModel:
@@ -234,9 +234,36 @@ class FJSPIMModel:
             
         return priced_cols_pat
         
+    def setEarlyTermination(self,nodelimit = 100):
+        eventhdlr = EarlyTerminationEvent(nodelimit)
+        self.eventhdlr = eventhdlr
+        self.m.includeEventhdlr(eventhdlr, "EarlyTerminationEvent", "python event handler to stop SCIP core after inbuilt heurisrics find good solution")
+
+    def getNodes(self):
+        return self.eventhdlr.nodes
+    
+class EarlyTerminationEvent(Eventhdlr):
+    def __init__(self,nodelimit = 100):
+        self.nodes = 0
+        self.nodesLimit = nodelimit
+    def eventinit(self):
+        self.model.catchEvent(SCIP_EVENTTYPE.NODESOLVED, self)
+        #self.model.catchEvent(SCIP_EVENTTYPE.BESTSOLFOUND, self)
+        
+    def eventexit(self):
+        self.model.dropEvent(SCIP_EVENTTYPE.NODESOLVED, self)
+        #self.model.catchEvent(SCIP_EVENTTYPE.BESTSOLFOUND, self)
+
+    def eventexec(self, event):
+        print("nodes:{}".format(self.nodes))
+        self.nodes = self.nodes + 1
+        if self.nodes > self.nodesLimit:
+            self.model.interruptSolve()
+
         
 if __name__ == '__main__':
-    filename = "150_10_2_300.fim"
+    filename = "40_3_2_40_7.fim"
     p = FJSPIMProblem(filename)
     m = FJSPIMModel(p)
+  
     m.m.optimize()

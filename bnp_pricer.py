@@ -15,7 +15,7 @@ class SchedulePricer(Pricer):
             self.data["convex_i"][i] = self.model.getTransformedCons(self.data["convex_i"][i])
         for pair in self.data["p"].A:
             self.data["pre_u_v"][pair] = self.model.getTransformedCons(self.data["pre_u_v"][pair])
-            
+    
     
     def branch_feasibility_test(self,var_name,var_tuple,var_value):
         assert ((var_name == "lamda" and len(var_tuple)==3) or (var_name == "psi" and len(var_tuple)==4))
@@ -291,7 +291,7 @@ class SchedulePricer(Pricer):
                 redcost = 1
             """
             #print("redcost:{}".format(redcost))
-            if redcost < -1e-08:
+            if redcost < -INTEGER_PRECISION:
 
                 #for u in self.data["p"].D[i]:
                     #print("C_{}:{}".format(u,round(m.getVal(C_u[u]))))
@@ -351,7 +351,7 @@ class SchedulePricer(Pricer):
                 
         return {'result':SCIP_RESULT.SUCCESS}
     
-        
+    
 class EarlyTerminationEvent(Eventhdlr):
     
     def eventinit(self):
@@ -370,7 +370,7 @@ class EarlyTerminationEvent(Eventhdlr):
             #print(event.getType())
             if self.model.getStage() == 9:
                 objVal = self.model.getSolObjVal(None,original=True)
-                if objVal < -1:
+                if objVal < -INTEGER_PRECISION:
                     #print("interruptSolve")
                     self.model.interruptSolve()
 

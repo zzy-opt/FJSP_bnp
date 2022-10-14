@@ -34,7 +34,7 @@ class BranchingConsHdrLamda(Conshdlr):
         tuple_iuk = self.find_binary_lamda(solution)
  
         if len(tuple_iuk) == 1:
-            print("find feasible lamda")
+            #print("find feasible lamda")
             return {"result": SCIP_RESULT.FEASIBLE}
         else:
             assert len(tuple_iuk) == 3
@@ -45,7 +45,7 @@ class BranchingConsHdrLamda(Conshdlr):
         
         tuple_iuk = self.find_binary_lamda(None)
         if len(tuple_iuk) == 1:
-            print("find feasible lamda")
+            #print("find feasible lamda")
             return {"result": SCIP_RESULT.FEASIBLE}
         assert(len(tuple_iuk) == 3)
         i = tuple_iuk[0]
@@ -57,12 +57,12 @@ class BranchingConsHdrLamda(Conshdlr):
         
         
         if self.pricer.branch_feasibility_test("lamda",(i,u,k),0):
-            print("branch on lamda_{}_{} on machine_{},value:{}".format(u,k,i,0))
+            #print("branch on lamda_{}_{} on machine_{},value:{}".format(u,k,i,0))
             node_0 = self.model.createChild(0.0,self.model.getLocalEstimate())
             self.update_pricer((i,u,k),node_0,0)
             
         if self.pricer.branch_feasibility_test("lamda",(i,u,k),1):
-            print("branch on lamda_{}_{} on machine_{},value:{}".format(u,k,i,1))
+            #print("branch on lamda_{}_{} on machine_{},value:{}".format(u,k,i,1))
             node_1 = self.model.createChild(0.0,self.model.getLocalEstimate())
             self.update_pricer((i,u,k),node_1,1)
         #if True:

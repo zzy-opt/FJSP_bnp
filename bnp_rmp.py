@@ -15,8 +15,7 @@ class FJSPIMCG:
 
     def find_init_sol(self,p:FJSPIMProblem):
         m = FJSPIMModel(p)
-        
-        m.m.setObjective(1,sense = 'minimize')
+        m.setEarlyTermination()
         m.m.optimize()
         sol = m.m.getBestSol()
         C_u = {}
@@ -245,7 +244,7 @@ class FJSPIMCG:
         
             
 if __name__ == '__main__':
-    filename = "20_3_4_60.fim"
+    filename = "150_3_4_60.fim"
     p = FJSPIMProblem(filename)
     m = FJSPIMCG(p)
     m.m.optimize()

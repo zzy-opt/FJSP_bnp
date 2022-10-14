@@ -55,13 +55,13 @@ class BranchingConsHdrPsi(Conshdlr):
         
         
         if self.pricer.branch_feasibility_test("psi",(i,u,v,k),0):
-            print("branch on psi:{},value:{}".format((i,u,v,k),0))
+            #print("branch on psi:{},value:{}".format((i,u,v,k),0))
             node_0 = self.model.createChild(0.0,self.model.getLocalEstimate())
             self.update_pricer((i,u,v,k),node_0,0)
         
         
         if self.pricer.branch_feasibility_test("psi",(i,u,v,k),1):
-            print("branch on psi:{},value:{}".format((i,u,v,k),1))
+            #print("branch on psi:{},value:{}".format((i,u,v,k),1))
             node_1 = self.model.createChild(0.0,self.model.getLocalEstimate())
             self.update_pricer((i,u,v,k),node_1,1)
             

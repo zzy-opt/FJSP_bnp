@@ -1,7 +1,9 @@
 import random
 
-def create_fjsp_identical_machines(n_ops,n_types,n_low_machines,n_up_machines,t_low,t_up,n_precedence):
+def create_fjsp_identical_machines(n_ops,n_types,n_low_machines,n_up_machines,t_low,t_up,n_precedence,index=0):
 	filename = str(n_ops)+"_" + str(n_types)+"_" + str(int(1/2*(n_low_machines+n_up_machines)))+"_" + str(n_precedence) +".fim"
+	if index!= 0:
+		filename = str(n_ops)+"_" + str(n_types)+"_" + str(int(1/2*(n_low_machines+n_up_machines)))+"_" + str(n_precedence)+"_" +str(index) +".fim"
 	f = open(filename, "w")
 	f.write(str(n_ops)+", " + str(n_types)+", " + str(int(1/2*(n_low_machines+n_up_machines)))+", " + str(n_precedence)+"\n")
 	# operations
