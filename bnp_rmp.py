@@ -7,7 +7,7 @@ from bnp_branch_conshdr_lamda import BranchingConsHdrLamda
 from bnp_branch_conshdr_psi import BranchingConsHdrPsi
 
 
-class FJSPIMCG:
+class FJSPIMBNP:
     
     # return initial solution C
     # C is dic {i, C_i}
@@ -15,7 +15,8 @@ class FJSPIMCG:
 
     def find_init_sol(self,p:FJSPIMProblem):
         m = FJSPIMModel(p)
-        m.setEarlyTermination()
+        #m.setEarlyTermination()
+        m.m.setObjective(1,sense = 'minimize')
         m.m.optimize()
         sol = m.m.getBestSol()
         C_u = {}
@@ -77,6 +78,9 @@ class FJSPIMCG:
             
         
     def __init__(self,p:FJSPIMProblem):
+        
+        self.nodes = 0
+        
         m = Model("fjspim_master")
         m.setIntParam("presolving/maxrounds", 0)
         m.setPresolve(SCIP_PARAMSETTING.OFF)
@@ -168,6 +172,7 @@ class FJSPIMCG:
         
         # create pricer
         pricer = SchedulePricer()
+        self.pricer = pricer
         m.includePricer(pricer, "SchedulePricer", "Pricer to identify new schedule for every machine")
         pricer.data = {}
         #pricer.data[10] = "=============================1000000000000======================="
@@ -196,7 +201,7 @@ class FJSPIMCG:
         # create pricing conshdr
         pricingConshdr = PricingDataHdr(pricer.data,self.y)
         m.includeConshdlr(pricingConshdr,"PricingConshdr","update pricer data after branching")
-        
+        self.pricingConshdr = pricingConshdr
         
         
         # create branching rules: assignment constraint and machine constraint
@@ -204,6 +209,21 @@ class FJSPIMCG:
         brConshdrMachine = BranchingConsHdrPsi(self.p,self.y,pattern_psi_u_v_k,pricingConshdr,pricer)
         m.includeConshdlr(brConshdrAssignment,"Assignment branching conshdlr","to branch lamda variables",chckpriority=100,needscons=False)
         m.includeConshdlr(brConshdrMachine,"Machine branching conshdlr","to branch psi variables",chckpriority=10,needscons=False)
+        
+    def get_nodes(self):
+        return self.pricingConshdr.nodes
+    
+    def get_time_sub(self):
+        return self.pricer.time_sub
+    
+    def get_sub_its(self):
+        return self.pricer.sub_its
+    def get_cols(self):
+        len_y = 0
+        for i in self.p.M:
+            len_y = len_y + len(self.y[i])
+        return len_y
+    
         
         
     def print_solution(self):
@@ -241,12 +261,13 @@ class FJSPIMCG:
         for pair in sum_C_u_k:
             if sum_C_u_k[pair] != 0:
                 print("C_{}_{}:{}".format(pair[0],pair[1],sum_C_u_k[pair]))
+
         
             
 if __name__ == '__main__':
-    filename = "150_3_4_60.fim"
+    filename = "14_3_2_14_3.fim"
     p = FJSPIMProblem(filename)
-    m = FJSPIMCG(p)
+    m = FJSPIMBNP(p)
     m.m.optimize()
     m.print_solution()
     m.m.writeProblem(filename+".lp",trans=True)

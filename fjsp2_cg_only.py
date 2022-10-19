@@ -245,6 +245,8 @@ class SchedulePricer(Pricer):
             #print("item:{}".format(i))
             m = Model("Schedule_sub_"+str(i))
             # Turning off presolve
+            m.setPresolve(SCIP_PARAMSETTING.OFF)
+            m.setHeuristics(SCIP_PARAMSETTING.OFF)
             
             # Setting the verbosity level to 0
             m.hideOutput()
@@ -392,9 +394,10 @@ class EarlyTerminationEvent(Eventhdlr):
         if self.model.getSolvingTime() > PRICER_MAX_TIME:
             #print(event.getType())
             if self.model.getStage() == 9:
-                objVal = self.model.getSolObjVal(None,original=True)
+                objVal = self.model.getPrimalbound()
+                dual = self.model.getDualbound()
                 #print("sub_obj:{}".format(objVal))
-                if objVal < -INTEGER_PRECISION:
+                if objVal < -INTEGER_PRECISION or dual > INTEGER_PRECISION:
                     #print("interruptSolve")
                     self.model.interruptSolve()
 
@@ -406,7 +409,7 @@ if __name__ == '__main__':
     #2.70625000000000e+01
     #32
     #21
-    filename = "40_3_2_40_7.fim"
+    filename = "70_3_4_70_9.fim"
     p = FJSPIMProblem(filename)
     m = FJSPIMCG(p)
     m.m.optimize()

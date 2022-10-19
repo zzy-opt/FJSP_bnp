@@ -2,10 +2,14 @@ from pyscipopt import Model, Pricer, SCIP_RESULT, SCIP_PARAMSETTING, quicksum, E
 from fjspim_problem import FJSPIMProblem
 from fjspim_model import FJSPIMModel
 from bnp_constant import PRICER_MAX_TIME,INTEGER_PRECISION
-import datetime
+import time
 
 class SchedulePricer(Pricer):
 
+    def __init__(self):
+        self.time_sub = 0
+        self.sub_its = 0
+        
     # The initialisation function for the variable pricer to retrieve the transformed constraints of the problem
     def pricerinit(self):
         #print(self.data[10])
@@ -15,7 +19,7 @@ class SchedulePricer(Pricer):
             self.data["convex_i"][i] = self.model.getTransformedCons(self.data["convex_i"][i])
         for pair in self.data["p"].A:
             self.data["pre_u_v"][pair] = self.model.getTransformedCons(self.data["pre_u_v"][pair])
-    
+        
     
     def branch_feasibility_test(self,var_name,var_tuple,var_value):
         assert ((var_name == "lamda" and len(var_tuple)==3) or (var_name == "psi" and len(var_tuple)==4))
@@ -33,7 +37,7 @@ class SchedulePricer(Pricer):
         
             
         # allow early termination if negative reduced cost it found 
-        eventhdlr = EarlyTerminationEvent()
+        eventhdlr = EarlyTerminationEvent(self.model)
         m.includeEventhdlr(eventhdlr, "EarlyTerminationEvent", "python event handler to stop pricer early when negetive redeced cost is found")
             
         # add subproblem variables
@@ -143,6 +147,7 @@ class SchedulePricer(Pricer):
     
     
     def pricerredcost(self):  
+        time_0 = time.time()
         #print("try to find new cols")
         # get dual variables
         gamma_u={}
@@ -176,15 +181,17 @@ class SchedulePricer(Pricer):
 
         # calculate the column with least reduced cost for each sub-porblem
         for i in self.data["p"].M:
+            self.sub_its = self.sub_its + 1
             m = Model("Schedule_sub_"+str(i))
             # Turning off presolve
-            m.setPresolve(SCIP_PARAMSETTING.OFF)
+            #m.setPresolve(SCIP_PARAMSETTING.OFF)
+            #m.setHeuristics(SCIP_PARAMSETTING.OFF)
             # Setting the verbosity level to 0
             m.hideOutput()
-            m.setHeuristics(SCIP_PARAMSETTING.OFF)
+            
             
             # allow early termination if negative reduced cost it found 
-            eventhdlr = EarlyTerminationEvent()
+            eventhdlr = EarlyTerminationEvent(self.model)
             m.includeEventhdlr(eventhdlr, "EarlyTerminationEvent", "python event handler to stop pricer early when negetive redeced cost is found")
             
             # add subproblem variables
@@ -341,18 +348,24 @@ class SchedulePricer(Pricer):
                 for u in C_u:
                     pat_Cui[u] = round(m.getVal(C_u[u]))
                 for pair in psi_u_v_k:
-                    if round(m.getVal(psi_u_v_k[pair]))==1:
+                    u = pair[0]
+                    v = pair[1]
+                    k = pair[2]
+                    if round(m.getVal(psi_u_v_k[pair]))==1 and round(m.getVal(lamda_u_k[(u,k)])) == 1 and round(m.getVal(lamda_u_k[(v,k)])) == 1:
                         pat_psi_uvki[pair] = 1
                 
                 self.data["pat_C_u"][i].append(pat_Cui)
                 self.data["pat_C_u_k"][i].append(pat_Cuki)
                 self.data["pat_lamda_u_k"][i].append(pat_lamda_uki)
                 self.data["pat_psi_u_v_k"][i].append(pat_psi_uvki)
-                
+        time_1 = time.time() - time_0
+        self.time_sub = self.time_sub + time_1
         return {'result':SCIP_RESULT.SUCCESS}
     
     
 class EarlyTerminationEvent(Eventhdlr):
+    def __init__(self,rmp):
+        self.rmp = rmp
     
     def eventinit(self):
         self.model.catchEvent(SCIP_EVENTTYPE.NODESOLVED, self)
@@ -369,10 +382,15 @@ class EarlyTerminationEvent(Eventhdlr):
         if self.model.getSolvingTime() > PRICER_MAX_TIME:
             #print(event.getType())
             if self.model.getStage() == 9:
-                objVal = self.model.getSolObjVal(None,original=True)
-                if objVal < -INTEGER_PRECISION:
+                objVal = self.model.getPrimalbound()
+                dual = self.model.getDualbound()
+                #print("sub_obj:{}".format(objVal))
+                if objVal < -INTEGER_PRECISION or dual > INTEGER_PRECISION:
                     #print("interruptSolve")
                     self.model.interruptSolve()
+        if self.rmp.getSolvingTime() > 600:
+            self.model.interruptSolve()
+        
 
         
 

@@ -5,6 +5,8 @@ from pyscipopt import Model,quicksum
 class FJSPIMModelC:
 	def __init__(self,p:FJSPIMProblem):
 		m = Model("fjspim")
+		self.lamda_count = 0
+		self.psi_count = 0
 		self.m = m
 		self.p = p
 		
@@ -46,7 +48,8 @@ class FJSPIMModelC:
 				D_i = p.D[i]
 				if u in D_i:
 					for k in p.K[i]:
-						lamda_u_k[(u,k)] = m.addVar("lamda_"+str(u)+"_"+str(k),vtype='C')			
+						lamda_u_k[(u,k)] = m.addVar("lamda_"+str(u)+"_"+str(k),vtype='C')
+						self.lamda_count = self.lamda_count + 1
 		self.lamda_u_k = lamda_u_k
 		# psi_u_k
 		psi_u_v_k = {}
@@ -56,7 +59,7 @@ class FJSPIMModelC:
 				v = pair[1]
 				for k in p.K[i]:
 					psi_u_v_k[(u,v,k)] = m.addVar("psi_"+str(u)+"_"+str(v)+"_"+str(k),vtype='C')
-		
+					self.psi_count = self.psi_count + 1
 		
 		# create the constraints
 		# cons of the same type are stored in dict
@@ -203,7 +206,12 @@ class FJSPIMModelC:
 								print("machine constraints error, job:{} and job:{}, of which completion time are {} and {}".format(u,v,C_u,C_v))
 								return 0
 		print("----------pass machine check----------")
-		
+	
+
+	def getLamdas(self):
+		return self.lamda_count
+	def getPsis(self):
+		return self.psi_count
 		
 if __name__ == '__main__':
 	filename = "150_10_2_300.fim"

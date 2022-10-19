@@ -7,6 +7,7 @@ from bnp_pricer import SchedulePricer
 class PricingDataHdr(Conshdlr):
 
     def __init__(self,p_data,y):
+        self.nodes = 0
         self.data = {}
         # pricer data
         self.data["p_data"] = p_data
@@ -55,6 +56,8 @@ class PricingDataHdr(Conshdlr):
     # consresprop
 
     def consactive(self, constraint):
+        self.nodes = self.nodes + 1
+        print(self.nodes)
         if constraint.data["var_name"]=="lamda":
             self.data["p_data"]["fixed_lamda"][constraint.data["machine"]].append(constraint.data["var_tuple"])
             tuple_iuk = (constraint.data["machine"],constraint.data["var_tuple"][0],constraint.data["var_tuple"][1])
